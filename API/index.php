@@ -5,49 +5,41 @@
      * 
      * $_GET['from']
      * 
-     * articles - artykuły
-     * categories - kategorie
-     * languages - języki
-     * content - zawartość
+     * a - artykuły
+     * ca - kategorie
+     * l - języki
+     * co - zawartość
      * 
-     * --- FUNKCJE ---
+     * --- FUNCTIONS ---
      * 
      * $_GET['func']
      * 
      * getAll
      * 
-     * --- ARGUMENTY ---
+     * --- AGRUMENTS ---
      * 
      * $_GET['args']
      * 
+     * limit
+     * 
+     * sort
+     *  - by
+     * 
+     * --- SYNTAX ---
+     * 
+     * : - before arg value (limit:2)
+     * ^ - between args (sort:asc^by:id)
+     * 
      */
+
+    $mysqli = new mysqli('localhost','root','','antonpedia');
 
     $appendix = "";
 
-    $mysqli = new mysqli
-    (
-        'localhost',
-        'root',
-        '',
-        'antonpedia'
-    );
-
-    $query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA='antonpedia';";
-
-    $result = $mysqli -> query($query);
-
-    $tables = array();
-
-    while ($row = $result -> fetch_array()){
-        $tables[] = $row[0];
-    }
-
-    // echo implode(",", $tables);
-
-    if (isset($_GET['from']) && in_array($_GET['from'], $tables)){
-        $from = $_GET['from'];
-
+    if (isset($_GET['from']) && is_string($from = isTableSelectedProperly($mysqli, $_GET['from']))){
         if (isset($_GET['func'])){
+            header("Content-Type: application/json; charset=UTF-8");
+
             $func = $_GET['func'];
             
             if (isset($_GET['args'])){
@@ -72,11 +64,9 @@
                 }
             }
 
-            header("Content-Type: application/json; charset=UTF-8");
-
             switch ($func) { 
                 case "getAll":
-                    $result = $mysqli -> query ("SELECT * FROM ".$from." ".$appendix);
+                    $result = $mysqli -> query("SELECT * FROM ".$from." ".$appendix);
                     break;  
 
                 default:
@@ -86,12 +76,14 @@
         }
 
         else {
-            $result = $mysqli -> query ("SELECT * FROM dane");
+            echo "Należy wybrać funkcję (func=...)</br>";
+
+            $result = null;
         }
     }
 
     else{
-        echo "Podaj poprawną nazwę tabeli</br>";
+        echo "Należy wybrać tabelę (from=...)</br>";
 
         $result = null;
     }
@@ -109,4 +101,24 @@
     }
 
     $mysqli -> close(); 
+
+    function isTableSelectedProperly($mysqli, $selectedTable){
+        $query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA='antonpedia';";
+
+        $result = $mysqli -> query($query);
+
+        $tables = array();
+
+        while ($row = $result -> fetch_array()){
+            $tables[] = $row[0];
+        }
+
+        foreach ($tables as $t){
+            if (strpos($t, $selectedTable) === 0){
+                return $t;
+            }
+        }
+
+        return $tables;
+    }
 ?>
